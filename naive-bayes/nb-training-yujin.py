@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, roc_auc_score
 
 # Step 1: Load the dataset
-data = pd.read_excel(r'C:/Users/eugen/OneDrive/Desktop/Thyroid Cancer Risk Dataset.xlsx', sheet_name='Clean 90%')
+data = pd.read_csv("C:/Users/eugen/OneDrive/Desktop/Thyroid Cancer Risk Dataset.csv")
 
 # Step 2: Split into 90% (training & testing) and 10% (unseen data)
 train_test_data = data.sample(frac=0.9, random_state=42)
@@ -42,35 +42,6 @@ print("Mean cross-validation accuracy:", cv_scores.mean())
 
 # Get predictions for confusion matrix and other metrics
 y_pred = cross_val_predict(model, X_train, y_train, cv=10)
-
-# Confusion Matrix
-conf_matrix = confusion_matrix(y_train, y_pred)
-print("Confusion Matrix (Cross-Validation):\n", conf_matrix)
-
-# Plot confusion matrix for cross-validation
-plt.figure(figsize=(8, 6))
-sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Low', 'Medium', 'High'], yticklabels=['Low', 'Medium', 'High'])
-plt.title('Confusion Matrix (Cross-Validation)')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
-
-# Accuracy
-accuracy = accuracy_score(y_train, y_pred)
-print("Accuracy:", accuracy)
-
-# Precision (macro)
-precision = precision_score(y_train, y_pred, average='macro')
-print("Precision (macro):", precision)
-
-# Recall (macro)
-recall = recall_score(y_train, y_pred, average='macro')
-print("Recall (macro):", recall)
-
-# ROC-AUC (macro)
-y_pred_proba = cross_val_predict(model, X_train, y_train, cv=10, method='predict_proba')
-roc_auc = roc_auc_score(y_train, y_pred_proba, multi_class='ovr', average='macro')
-print("ROC-AUC (macro):", roc_auc)
 
 # Step 7: Train the model on the full training set
 model.fit(X_train, y_train)
