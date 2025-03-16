@@ -1,20 +1,20 @@
 # Import necessary libraries
 import pandas as pd
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, roc_auc_score
 import seaborn as sns
 
 # Load the dataset
-file_path = "C:/Users/Juduruu/Downloads/Thyroid_Cancer_Risk_Dataset_Clean_90.csv"  # Replace with your file path
+file_path = "C:/Users/jpads/Downloads/Thyroid Cancer Risk DatasetBang.csv"  # Replace with your file path
 data = pd.read_csv(file_path)
 
 # Preprocessing: Convert numerical columns to float
 numerical_cols = ['Age', 'TSH_Level', 'T3_Level', 'T4_Level', 'Nodule_Size']
-for col in numerical_cols:
-    data[col] = data[col].astype(float)
+# for col in numerical_cols:
+#     data[col] = data[col].astype(float)
 
 # Encode categorical variables using LabelEncoder
 categorical_cols = [col for col in data.columns if col not in numerical_cols and col != 'Thyroid_Cancer_Risk']
@@ -32,17 +32,25 @@ data['Thyroid_Cancer_Risk'] = target_encoder.fit_transform(data['Thyroid_Cancer_
 X = data.drop('Thyroid_Cancer_Risk', axis=1)
 y = data['Thyroid_Cancer_Risk']
 
-# Split the data into training and testing sets (80% train, 20% test)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Step 7: Split the dataset into 90-10 proportion
+X_train_test, X_unseen, y_train_test, y_unseen = train_test_split(data, y, test_size=0.1, random_state=42)
+
+# Step 8: Further split training & testing data into 80-20 proportion
+X_train, X_test, y_train, y_test = train_test_split(X_train_test, y_train_test, test_size=0.2, random_state=42)
 
 # Create and train the Gaussian Naive Bayes model
 model = GaussianNB()
+
+# Apply 10-fold cross-validation
+cv_scores = cross_val_score(model, X_train, y_train, cv=10, scoring='accuracy')
+
+# Train the model on the training data
 model.fit(X_train, y_train)
 
 # Make predictions on the test set
 y_pred = model.predict(X_test)
 
-# Get probability estimates for each class (optional)
+# Get probability estimates for each class
 y_pred_proba = model.predict_proba(X_test)
 
 # Evaluate the model's performance
@@ -70,14 +78,5 @@ print("Classification Report:")
 print(class_report)
 print("ROC-AUC:")
 print(roc_aoc)
+print("Mean Cross-Validation Accuracy:", cv_scores.mean())
 
-# Optional: Decode predictions back to original class names for better interpretability
-decoded_predictions = target_encoder.inverse_transform(y_pred)
-print("Decoded Predictions:", decoded_predictions[:10])  # Display first 10 predictions
-
-# # Save the trained model and encoders (optional)
-# import joblib
-# joblib.dump(model, "naive_bayes_model.pkl")
-# joblib.dump(target_encoder, "target_encoder.pkl")
-# for col, le in label_encoders.items():
-#     joblib.dump(le, f"{col}_encoder.pkl")
