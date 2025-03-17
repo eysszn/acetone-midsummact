@@ -9,19 +9,28 @@ from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, roc_auc_score, make_scorer
 
 # Load the dataset
-df = pd.read_csv("Downloads/Thyroid.csv")
+file_path = "Downloads/Thyroid.csv"
+data = pd.read_csv(file_path)
 
-# Encode categorical variables
-cat_cols = df.select_dtypes(include=["object"]).columns
-encoders = {}
-for col in cat_cols:
+# Preprocessing: Convert numerical columns to float
+numerical_cols = ['Age', 'TSH_Level', 'T3_Level', 'T4_Level', 'Nodule_Size']
+data[numerical_cols] = data[numerical_cols].astype(float)
+
+# Encode categorical variables using LabelEncoder
+categorical_cols = [col for col in data.columns if col not in numerical_cols and col != 'Thyroid_Cancer_Risk']
+label_encoders = {}
+for col in categorical_cols:
     le = LabelEncoder()
-    df[col] = le.fit_transform(df[col])
-    encoders[col] = le
+    data[col] = le.fit_transform(data[col])
+    label_encoders[col] = le  # Save encoder for future use
+
+# Encode the target column (Thyroid_Cancer_Risk)
+target_encoder = LabelEncoder()
+data['Thyroid_Cancer_Risk'] = target_encoder.fit_transform(data['Thyroid_Cancer_Risk'])
 
 # Define features and target variable
-X = df.drop(columns=["Thyroid_Cancer_Risk"], errors='ignore')
-y = df["Thyroid_Cancer_Risk"]
+X = data.drop(columns=["Thyroid_Cancer_Risk"], errors='ignore')
+y = data["Thyroid_Cancer_Risk"]
 
 # Split into 90% train-test and 10% unseen
 X_tt, X_un, y_tt, y_un = train_test_split(X, y, test_size=0.10, random_state=42, stratify=y)
@@ -51,21 +60,6 @@ grid_search.fit(X_tr, y_tr)
 # Best model from tuning
 best_svm = grid_search.best_estimator_
 
-# Define scoring metrics for 10-fold cross-validation
-scoring = {
-    'accuracy': 'accuracy',
-    'precision': make_scorer(precision_score, average='weighted'),
-    'recall': make_scorer(recall_score, average='weighted'),
-    'roc_auc': make_scorer(roc_auc_score, multi_class='ovr')
-}
-
-# Perform 10-fold cross-validation
-cv_results = {}
-cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
-for metric_name, metric in scoring.items():
-    scores = cross_val_score(best_svm, X_tr, y_tr, cv=cv, scoring=metric)
-    cv_results[metric_name] = (scores.mean(), scores.std())
-
 # Train the final model on the full training set
 best_svm.fit(X_tr, y_tr)
 
@@ -87,6 +81,9 @@ rec_un = recall_score(y_un, y_un_pred, average="weighted")
 roc_un = roc_auc_score(y_un, y_un_prob, multi_class="ovr")
 conf_un = confusion_matrix(y_un, y_un_pred)
 
+# Define labels
+labels = ["Low", "Medium", "High"]
+
 # Print Final Model Evaluation Results
 test_results = pd.DataFrame({
     "Metric": ["Accuracy", "Precision", "Recall", "ROC-AUC"],
@@ -99,7 +96,6 @@ unseen_results = pd.DataFrame({
 })
 
 # Plot confusion matrix for test data
-labels = ["Low", "Medium", "High"]
 plt.figure(figsize=(6,5))
 sns.heatmap(conf_te, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
 plt.xlabel('Predicted')
