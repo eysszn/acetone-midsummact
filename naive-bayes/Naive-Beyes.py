@@ -1,29 +1,40 @@
-# Import necessary libraries
 import pandas as pd
 from matplotlib import pyplot as plt
+from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.preprocessing import LabelEncoder
-from sklearn.naive_bayes import GaussianNB
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder, KBinsDiscretizer, OneHotEncoder, StandardScaler
+from sklearn.naive_bayes import GaussianNB, CategoricalNB, MultinomialNB
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, roc_auc_score, recall_score, \
     precision_score
 import seaborn as sns
 
 # Load the dataset
-file_path = "C:/Users/jpads/Downloads/Thyroid Cancer Risk DatasetBang.csv"  # Replace with your file path
+file_path = "Thyroid Cancer Risk Dataset Clean.csv"
 data = pd.read_csv(file_path)
 
-# Preprocessing: Convert numerical columns to float
-numerical_cols = ['Age', 'TSH_Level', 'T3_Level', 'T4_Level', 'Nodule_Size']
-# for col in numerical_cols:
-#     data[col] = data[col].astype(float)
+# Define categorical and numerical features (keep this part unchanged)
+categorical_features = ['Gender', 'Family_History', 'Radiation_Exposure', 'Iodine_Deficiency', 'Smoking', 'Obesity', 'Diabetes']
+numerical_features = ['Age', 'TSH_Level', 'T3_Level', 'T4_Level', 'Nodule_Size']
 
-# Encode categorical variables using LabelEncoder
-categorical_cols = [col for col in data.columns if col not in numerical_cols and col != 'Thyroid_Cancer_Risk']
-label_encoders = {}
-for col in categorical_cols:
-    le = LabelEncoder()
-    data[col] = le.fit_transform(data[col])
-    label_encoders[col] = le  # Save encoder for future use
+# Create a pipeline for numerical features
+numerical_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('discretizer', KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='quantile'))
+])
+
+# Update the ColumnTransformer to include the numerical pipeline
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_pipeline, numerical_features),  # Apply standardization then discretization
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+    ])
+
+# Keep the rest of your main pipeline unchanged
+model = Pipeline([
+    ('preprocessor', preprocessor),
+    ('classifier', CategoricalNB()),
+])
 
 # Encode the target column (Thyroid_Cancer_Risk)
 target_encoder = LabelEncoder()
@@ -33,14 +44,11 @@ data['Thyroid_Cancer_Risk'] = target_encoder.fit_transform(data['Thyroid_Cancer_
 X = data.drop('Thyroid_Cancer_Risk', axis=1)
 y = data['Thyroid_Cancer_Risk']
 
-# Step 7: Split the dataset into 90-10 proportion
-X_train_test, X_unseen, y_train_test, y_unseen = train_test_split(data, y, test_size=0.1, random_state=42)
+# Split the dataset into 90-10 proportion
+X_train_test, X_unseen, y_train_test, y_unseen = train_test_split(X, y, test_size=0.1, random_state=42, stratify=y)
 
-# Step 8: Further split training & testing data into 80-20 proportion
-X_train, X_test, y_train, y_test = train_test_split(X_train_test, y_train_test, test_size=0.2, random_state=42)
-
-# Create and train the Gaussian Naive Bayes model
-model = GaussianNB()
+# Further split training & testing data into 80-20 proportion
+X_train, X_test, y_train, y_test = train_test_split(X_train_test, y_train_test, test_size=0.2, random_state=42, stratify=y_train_test)
 
 # Apply 10-fold cross-validation
 cv_scores = cross_val_score(model, X_train, y_train, cv=10, scoring='accuracy')
@@ -72,11 +80,7 @@ plt.tight_layout()
 plt.savefig('confusion_matrix.png')
 plt.show()
 
-# Print the Results
-print(f"Accuracy: {accuracy}")
-print("Classification Report:")
-print(class_report)
-
+# Print the results for evaluation on test data
 print("Mean Cross-Validation Accuracy (Using Test Data):", cv_scores.mean())
 print("Confusion Matrix (Using Test Data):")
 print(test_conf_matrix)
@@ -91,7 +95,6 @@ test_recall = recall_score(y_test, y_pred, average='macro')
 print(f"Test Recall (macro): {test_recall}")
 # ROC-AUC (macro)
 print(f"Test ROC-AUC (macro): {roc_auc}")
-
 
 # Predict on unseen data
 unseen_pred = model.predict(X_unseen)
@@ -113,5 +116,3 @@ print("Unseen Data Precision (macro):", test_precision)
 print(f"Unseen Data Recall (macro): {test_recall}")
 # ROC-AUC (macro)
 print(f"Unseen Data ROC-AUC (macro): {unseen_roc_auc}")
-
-
