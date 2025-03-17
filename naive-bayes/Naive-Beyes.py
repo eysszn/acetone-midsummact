@@ -114,7 +114,7 @@ sns.heatmap(unseen_conf_matrix, annot=True, fmt='d', cmap='Blues',
             yticklabels=target_encoder.classes_)
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.title('Confusion Matrix (Using Test Data)')
+plt.title('Confusion Matrix (Using Unseen Data)')
 plt.tight_layout()
 plt.savefig('unseen_confusion_matrix.png')
 plt.show()
