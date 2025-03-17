@@ -77,7 +77,7 @@ plt.xlabel('Predicted')
 plt.ylabel('Actual')
 plt.title('Confusion Matrix (Using Test Data)')
 plt.tight_layout()
-plt.savefig('confusion_matrix.png')
+plt.savefig('test_confusion_matrix.png')
 plt.show()
 
 # Print the results for evaluation on test data
@@ -105,6 +105,19 @@ unseen_recall = recall_score(y_unseen, unseen_pred, average='macro')
 unseen_precision = precision_score(y_unseen, unseen_pred, average='macro')
 unseen_class_report = classification_report(y_unseen, unseen_pred, target_names=target_encoder.classes_)
 unseen_roc_auc= roc_auc_score(y_unseen, unseen_pred_proba, multi_class='ovr')
+
+
+# Visualize the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(unseen_conf_matrix, annot=True, fmt='d', cmap='Blues',
+            xticklabels=target_encoder.classes_,
+            yticklabels=target_encoder.classes_)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix (Using Test Data)')
+plt.tight_layout()
+plt.savefig('unseen_confusion_matrix.png')
+plt.show()
 
 print("Confusion Matrix (Using Unseen Data):")
 print(unseen_conf_matrix)
